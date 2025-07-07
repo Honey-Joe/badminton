@@ -71,8 +71,8 @@ bookingSchema.pre('save', function(next) {
   const startHour = this.startTime.getHours();
   const endHour = this.endTime.getHours();
   
-  if (startHour < 6 || endHour > 22) {
-    return next(new AppError('Bookings only allowed between 6AM and 10PM', 400));
+  if (startHour < 1 || endHour > 23) {
+    return next(new AppError('Bookings only allowed between 1AM and 11PM', 400));
   }
 
   // Minimum booking duration (30 minutes)
