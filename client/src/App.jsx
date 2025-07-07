@@ -1,15 +1,24 @@
-import { useState } from 'react'
+import { Provider } from 'react-redux';
+import { store } from './store/store';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import LoginForm from './pages/auth/LoginForm';
+import RegisterForm from './pages/auth/RegisterForm';
+import Home from './components/Home';
+import { ToastContainer } from 'react-toastify';
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <p className='text-3xl text-red-400 text-start'>hello</p>
-      </div>
-    </>
-  )
+    <Provider store={store}>
+      <ToastContainer />
+      <Router>
+        <Routes>
+          <Route path="/login" element={<LoginForm />} />
+          <Route path="/register" element={<RegisterForm />} />
+          <Route path="/" element={<Home />} />
+        </Routes>
+      </Router>
+    </Provider>
+  );
 }
 
-export default App
+export default App;
