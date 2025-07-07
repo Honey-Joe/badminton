@@ -8,6 +8,7 @@ const router = express.Router();
 router.use(authMiddleware.protect);
 
 router.post('/check-availability', bookingController.checkAvailability);
+router.post('/check-multiple-availabilities', bookingController.checkMultipleAvailabilities)
 router.post('/', bookingController.createBooking);
 router.get('/my-bookings', bookingController.getUserBookings);
 router.get('/:id', bookingController.getBooking);

@@ -38,3 +38,10 @@ export const checkAvailability = async (court, startTime, endTime) => {
   });
   return response.data.data.available;
 };
+export const checkMultipleAvailabilities = async (slotsData) => {
+  const response = await axios.post(`${API_URL}/bookings/check-multiple-availabilities`, 
+    slotsData,
+    { withCredentials: true }
+  );
+  return response.data;
+};

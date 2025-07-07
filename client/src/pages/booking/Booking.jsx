@@ -1,198 +1,284 @@
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { setStatus, setError } from '../../store/authSlice';
-import { createBooking, checkAvailability } from '../../services/api';
+import { checkMultipleAvailabilities, createBooking } from '../../services/api';
 import { toast } from 'react-toastify';
 import Layout from '../../layouts/Layout';
 
-const BookingForm = () => {
-  const dispatch = useDispatch();
-  const { user, token } = useSelector((state) => state.auth);
-  const [availability, setAvailability] = useState(null);
-  
-  const [formData, setFormData] = useState({
-    court: 'Court 1',
-    date: '',
-    startTime: '',
-    endTime: '',
-    notes: ''
-  });
+const Booking = () => {
+  const { user } = useSelector((state) => state.auth);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedCourt, setSelectedCourt] = useState('Court 1');
+  const [selectedSlots, setSelectedSlots] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [batchLoading, setBatchLoading] = useState(false);
 
-  // Set default date to tomorrow
-  useEffect(() => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const dateStr = tomorrow.toISOString().split('T')[0];
+  // Generate 1-hour time slots from 5AM to 12AM
+  const generateTimeSlots = () => {
+    const slots = [];
+    const startHour = 5; // 5AM opening
+    const endHour = 24;  // 12AM midnight closing
     
-    setFormData(prev => ({
-      ...prev,
-      date: dateStr,
-      startTime: `${dateStr}T10:00`,
-      endTime: `${dateStr}T11:00`
-    }));
-  }, []);
+    for (let hour = startHour; hour < endHour; hour++) {
+      const timeString = `${hour.toString().padStart(2, '0')}:00`;
+      const displayHour = hour > 12 ? hour - 12 : hour;
+      slots.push({
+        time: timeString,
+        displayTime: `${displayHour}:00 ${hour >= 12 ? 'PM' : 'AM'}`,
+        isAvailable: false,
+        isSelected: false
+      });
+    }
+    return slots;
+  };
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
+  const [timeSlots, setTimeSlots] = useState(generateTimeSlots());
+
+  // Format date as "Mon, 07 Jul 2025"
+  const formatDate = (date) => {
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'short', 
+      day: '2-digit', 
+      month: 'short', 
+      year: 'numeric' 
     });
   };
 
-  const handleCheckAvailability = async () => {
-    if (!formData.date || !formData.startTime || !formData.endTime) return;
+  // Format date for API as "YYYY-MM-DD"
+  const formatApiDate = (date) => {
+    return date.toISOString().split('T')[0];
+  };
+
+  // Check availability for all slots in parallel
+  useEffect(() => {
+    const checkAllSlots = async () => {
+      setBatchLoading(true);
+      const dateStr = formatApiDate(selectedDate);
+      
+      const slotsToCheck = timeSlots.map(slot => ({
+        court: selectedCourt,
+        startTime: `${dateStr}T${slot.time}`,
+        endTime: `${dateStr}T${(parseInt(slot.time.split(':')[0]) + 1).toString().padStart(2, '0')}:00` // 1-hour slots
+      }));
+
+      try {
+        const response = await checkMultipleAvailabilities({ slots: slotsToCheck });
+        
+        setTimeSlots(prevSlots => 
+          prevSlots.map((slot, index) => ({
+            ...slot,
+            isAvailable: response.data.results[index].available,
+            isSelected: false // Reset selection when changing date/court
+          }))
+        );
+        setSelectedSlots([]);
+      } catch (error) {
+        toast.error('Failed to check availability');
+      } finally {
+        setBatchLoading(false);
+      }
+    };
+
+    checkAllSlots();
+  }, [selectedDate, selectedCourt]);
+
+  const handleDateChange = (days) => {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() + days);
+    setSelectedDate(newDate);
+  };
+
+  const handleSlotClick = (slot) => {
+    if (!slot.isAvailable) return;
     
-    dispatch(setStatus('loading'));
+    setTimeSlots(prev => 
+      prev.map(s => 
+        s.time === slot.time 
+          ? { ...s, isSelected: !s.isSelected } 
+          : s
+      )
+    );
+    
+    setSelectedSlots(prev => {
+      if (prev.some(s => s.time === slot.time)) {
+        return prev.filter(s => s.time !== slot.time);
+      } else {
+        return [...prev, slot];
+      }
+    });
+  };
+
+  const handleBooking = async () => {
+    if (selectedSlots.length === 0 || !user) return;
+    
+    setLoading(true);
     try {
-      const isAvailable = await checkAvailability(
-        formData.court,
-        new Date(formData.startTime),
-        new Date(formData.endTime)
+      const dateStr = formatApiDate(selectedDate);
+      
+      // Create all bookings in parallel
+      const bookingPromises = selectedSlots.map(slot => {
+        const startTime = new Date(`${dateStr}T${slot.time}`);
+        const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 1 hour
+        
+        return createBooking({
+          court: selectedCourt,
+          date: dateStr,
+          startTime: startTime.toISOString(),
+          endTime: endTime.toISOString(),
+        });
+      });
+
+      await Promise.all(bookingPromises);
+      
+      toast.success(`Successfully booked ${selectedSlots.length} slots!`);
+      
+      // Update availability for booked slots
+      setTimeSlots(prev => 
+        prev.map(slot => 
+          selectedSlots.some(s => s.time === slot.time)
+            ? { ...slot, isAvailable: false, isSelected: false }
+            : slot
+        )
       );
-      setAvailability(isAvailable);
-      console.log('Availability:', isAvailable);
-      dispatch(setStatus('succeeded'));
-      toast.success(isAvailable ? 'Court is available!' : 'Court is not available');
+      setSelectedSlots([]);
     } catch (error) {
-      dispatch(setError(error.message));
-      dispatch(setStatus('failed'));
-      toast.error(error.message.data || 'Failed to check availability');
+      toast.error(error.response?.data?.message || 'Booking failed');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    dispatch(setStatus('loading'));
-    
-    try {
-      await createBooking({
-        ...formData,
-      });
-      dispatch(setStatus('succeeded'));
-      alert('Booking created successfully!');
-      // Reset form
-      setFormData({
-        court: 'Court 1',
-        date: '',
-        startTime: '',
-        endTime: '',
-        notes: ''
-      });
-      setAvailability(null);
-    } catch (error) {
-      dispatch(setError(error.response?.data?.message || 'Booking failed'));
-      dispatch(setStatus('failed'));
-      toast.error(error.response?.data?.message || 'Booking failed');
-    }
-  };
+  // Calculate total booking duration and price
+  const totalHours = selectedSlots.length;
+  const pricePerHour = 300; // Example pricing
+  const totalPrice = totalHours * pricePerHour;
 
   return (
     <Layout>
+      <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-md overflow-hidden">
+        {/* Header */}
+        <div className="bg-gray-800 text-white p-4">
+          <div className="flex justify-between items-center">
+            <h1 className="text-xl font-bold">Badminton Court Booking</h1>
+            <div className="text-sm">
+              {formatDate(selectedDate)} ▼
+            </div>
+          </div>
+        </div>
 
-    <div className="max-w-md mx-auto bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-6 text-center">Book a Court</h2>
-      
-      <form onSubmit={handleSubmit} className="space-y-4">
         {/* Court Selection */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Court</label>
-          <select
-            name="court"
-            value={formData.court}
-            onChange={handleChange}
-            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-          >
-            <option>Court 1</option>
-            <option>Court 2</option>
-            <option>Court 3</option>
-          </select>
+        <div className="p-4 border-b">
+          <h2 className="text-lg font-semibold mb-2">Select Court</h2>
+          <div className="flex space-x-2">
+            {['Court 1', 'Court 2', 'Court 3'].map((court) => (
+              <button
+                key={court}
+                onClick={() => setSelectedCourt(court)}
+                className={`px-4 py-2 rounded-md text-sm font-medium ${
+                  selectedCourt === court
+                    ? 'bg-red-600 text-white'
+                    : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                }`}
+              >
+                {court}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Date Picker */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Date</label>
-          <input
-            type="date"
-            name="date"
-            value={formData.date}
-            onChange={handleChange}
-            min={new Date().toISOString().split('T')[0]}
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-          />
-        </div>
-
-        {/* Start Time */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Start Time</label>
-          <input
-            type="datetime-local"
-            name="startTime"
-            value={formData.startTime}
-            onChange={handleChange}
-            min={`${formData.date}T06:00`}
-            max={`${formData.date}T22:00`}
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-          />
-        </div>
-
-        {/* End Time */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">End Time</label>
-          <input
-            type="datetime-local"
-            name="endTime"
-            value={formData.endTime}
-            onChange={handleChange}
-            min={formData.startTime || `${formData.date}T06:00`}
-            max={`${formData.date}T22:00`}
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-          />
-        </div>
-
-        {/* Notes */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Notes (Optional)</label>
-          <textarea
-            name="notes"
-            rows={3}
-            value={formData.notes}
-            onChange={handleChange}
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-          />
-        </div>
-
-        {/* Availability Check */}
-        <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={handleCheckAvailability}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            Check Availability
-          </button>
-          
-          {availability !== null && (
-            <span className={`text-sm font-medium ${availability ? 'text-green-600' : 'text-red-600'}`}>
-              {availability ? 'Available!' : 'Not Available'}
-            </span>
+        {/* Time Slots */}
+        <div className="p-4">
+          <h2 className="text-lg font-semibold mb-2">Available Time Slots (1-hour)</h2>
+          {batchLoading ? (
+            <div className="text-center py-8">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-red-600"></div>
+              <p className="mt-2 text-gray-600">Loading availability...</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
+              {timeSlots.map((slot) => (
+                <button
+                  key={slot.time}
+                  onClick={() => handleSlotClick(slot)}
+                  disabled={!slot.isAvailable}
+                  className={`p-3 rounded-lg border-2 text-center transition-all ${
+                    slot.isSelected
+                      ? 'border-red-600 bg-red-50 shadow-md'
+                      : slot.isAvailable
+                      ? 'border-gray-200 hover:border-red-400 hover:bg-red-50'
+                      : 'border-gray-100 bg-gray-100 text-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  <div className="font-medium">{slot.displayTime}</div>
+                  <div className="text-xs mt-1">₹{pricePerHour}</div>
+                </button>
+              ))}
+            </div>
           )}
         </div>
 
-        {/* Submit Button */}
-        <div>
-          <button
-            type="submit"
-            disabled={availability === false}
-            className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${availability === false ? 'bg-gray-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'}`}
+        {/* Booking Summary */}
+        {selectedSlots.length > 0 && (
+          <div className="p-4 bg-gray-50 border-t">
+            <h2 className="text-lg font-semibold mb-2">Your Selection</h2>
+            <div className="space-y-2 mb-4">
+              {selectedSlots.map((slot) => (
+                <div key={slot.time} className="flex justify-between items-center">
+                  <span>{slot.displayTime}</span>
+                  <span className="font-medium">₹{pricePerHour}</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-between items-center border-t pt-2">
+              <span className="font-semibold">Total ({totalHours} hour{totalHours > 1 ? 's' : ''})</span>
+              <span className="font-bold text-lg">₹{totalPrice}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Date Navigation */}
+        <div className="p-4 bg-gray-100 flex justify-between items-center">
+          <button 
+            onClick={() => handleDateChange(-1)}
+            disabled={batchLoading}
+            className={`px-4 py-2 rounded-md ${
+              batchLoading ? 'bg-gray-300' : 'bg-white hover:bg-gray-50'
+            }`}
           >
-            Book Court
+            Previous Day
+          </button>
+          <div className="font-medium">
+            {formatDate(selectedDate)}
+          </div>
+          <button 
+            onClick={() => handleDateChange(1)}
+            disabled={batchLoading}
+            className={`px-4 py-2 rounded-md ${
+              batchLoading ? 'bg-gray-300' : 'bg-white hover:bg-gray-50'
+            }`}
+          >
+            Next Day
           </button>
         </div>
-      </form>
-    </div>
 
+        {/* Proceed Button */}
+        <div className="p-4 bg-gray-100 border-t">
+          <button
+            onClick={handleBooking}
+            disabled={selectedSlots.length === 0 || loading || batchLoading}
+            className={`w-full py-3 rounded-md font-bold text-lg ${
+              selectedSlots.length > 0 && !batchLoading
+                ? 'bg-red-600 text-white hover:bg-red-700 shadow-md'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
+          >
+            {loading 
+              ? `Booking ${selectedSlots.length} Slot${selectedSlots.length > 1 ? 's' : ''}...` 
+              : `Book Now (₹${totalPrice})`}
+          </button>
+        </div>
+      </div>
     </Layout>
   );
 };
 
-export default BookingForm;
+export default Booking;

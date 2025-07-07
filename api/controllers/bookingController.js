@@ -170,20 +170,98 @@ exports.cancelBooking = catchAsync(async (req, res, next) => {
 exports.checkAvailability = catchAsync(async (req, res, next) => {
   const { court, startTime, endTime } = req.body;
 
+  // Basic validation
   if (!court || !startTime || !endTime) {
     return next(new AppError('Please provide court, startTime and endTime', 400));
   }
 
-  const isAvailable = await Booking.checkAvailability(
+  const start = new Date(startTime);
+  const end = new Date(endTime);
+
+  // Cache key for Redis (if you implement caching later)
+  const cacheKey = `availability:${court}:${start.toISOString()}:${end.toISOString()}`;
+
+  // 1. First check if the time is outside business hours (fast rejection)
+  const startHour = start.getHours();
+  const endHour = end.getHours();
+  
+  if (startHour < 6 || endHour > 22) {
+    return res.status(200).json({
+      status: 'success',
+      data: { available: false, reason: 'Outside business hours' }
+    });
+  }
+
+  // 2. Check minimum/maximum duration (fast rejection)
+  const durationMinutes = (end - start) / (1000 * 60);
+  if (durationMinutes < 30 || durationMinutes > 180) {
+    return res.status(200).json({
+      status: 'success',
+      data: { available: false, reason: 'Invalid duration' }
+    });
+  }
+
+  // 3. Check for conflicting bookings (optimized query)
+  const conflict = await Booking.findOne({
     court,
-    new Date(startTime),
-    new Date(endTime)
+    $or: [
+      { 
+        startTime: { $lt: end }, 
+        endTime: { $gt: start } 
+      }
+    ]
+  })
+  .select('_id') // Only get the ID to minimize data transfer
+  .lean(); // Faster query by returning plain JS object
+
+  const isAvailable = !conflict;
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      available: isAvailable,
+      conflictId: conflict?._id || null
+    }
+  });
+});
+
+// Add this new controller method
+exports.checkMultipleAvailabilities = catchAsync(async (req, res, next) => {
+  const { slots } = req.body;
+  
+  if (!slots || !Array.isArray(slots)) {
+    return next(new AppError('Please provide an array of slots', 400));
+  }
+
+  // Validate each slot has required fields
+  for (const slot of slots) {
+    if (!slot.court || !slot.startTime || !slot.endTime) {
+      return next(new AppError('Each slot must have court, startTime and endTime', 400));
+    }
+  }
+
+  // Process all slots in parallel
+  const results = await Promise.all(
+    slots.map(async (slot) => {
+      const isAvailable = await Booking.checkAvailability(
+        slot.court,
+        new Date(slot.startTime),
+        new Date(slot.endTime)
+      );
+      return {
+        court: slot.court,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        available: isAvailable
+      };
+    })
   );
 
   res.status(200).json({
     status: 'success',
     data: {
-      available: isAvailable
+      count: results.length,
+      results
     }
   });
 });

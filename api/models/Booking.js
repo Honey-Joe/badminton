@@ -76,8 +76,8 @@ bookingSchema.pre('save', function(next) {
   }
 
   // Minimum booking duration (30 minutes)
-  if (this.duration < 30) {
-    return next(new AppError('Minimum booking duration is 30 minutes', 400));
+  if (this.duration < 60) {
+    return next(new AppError('Minimum booking duration is 60 minutes', 400));
   }
 
   // Maximum booking duration (3 hours)
@@ -106,7 +106,7 @@ bookingSchema.pre(/^find/, function(next) {
 });
 
 // Static method to check availability
-bookingSchema.statics.checkAvailability = async function(court, startTime, endTime, bookingId = null) {
+bookingSchema.statics.checkAvailability = async function(court, startTime, endTime) {
   const conflict = await this.findOne({
     court,
     $or: [
@@ -114,9 +114,10 @@ bookingSchema.statics.checkAvailability = async function(court, startTime, endTi
         startTime: { $lt: endTime }, 
         endTime: { $gt: startTime } 
       }
-    ],
-    _id: { $ne: bookingId } // Exclude current booking when updating
-  });
+    ]
+  })
+  .select('_id')
+  .lean();
 
   return !conflict;
 };
