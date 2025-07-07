@@ -4,6 +4,7 @@ import { setCredentials, setStatus, setError } from '../../store/authSlice';
 import { loginUser } from '../../services/api';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import Layout from '../../layouts/Layout';
 
 const LoginForm = () => {
   const dispatch = useDispatch();
@@ -41,6 +42,8 @@ const LoginForm = () => {
   };
 
   return (
+    <Layout>
+
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
         <div>
@@ -117,6 +120,8 @@ const LoginForm = () => {
         </div>
       </div>
     </div>
+
+    </Layout>
   );
 };
 
