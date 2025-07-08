@@ -13,7 +13,7 @@ router.post('/', bookingController.createBooking);
 router.get('/my-bookings', bookingController.getUserBookings);
 router.get('/:id', bookingController.getBooking);
 router.patch('/:id', bookingController.updateBooking);
-router.patch('/:id/cancel', bookingController.cancelBooking);
+router.delete('/:id/cancel', bookingController.cancelBooking);
 
 // Admin-only routes
 router.use(authMiddleware.restrictTo('admin'));

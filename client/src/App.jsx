@@ -9,6 +9,7 @@ import BookingForm from './pages/booking/Booking';
 import { useEffect } from 'react';
 import { getMe } from './services/api';
 import { setCredentials } from './store/authSlice';
+import MyBookings from './pages/booking/MyBookings';
 
 function App() {
 
@@ -24,7 +25,6 @@ function App() {
         }));
       } catch (error) {
         console.error('Failed to fetch user:', error);
-        toast.error('Failed to fetch user data');
       }
     };
     fetchUser();
@@ -37,7 +37,8 @@ function App() {
           <Route path="/login" element={<LoginForm />} />
           <Route path="/register" element={<RegisterForm />} />
           <Route path="/" element={<Home />} />
-                    <Route path="/bookings" element={<BookingForm />} />
+                    <Route path="/courts" element={<BookingForm />} />
+          <Route path="/bookings" element={<MyBookings />} />
 
         </Routes>
       </Router>

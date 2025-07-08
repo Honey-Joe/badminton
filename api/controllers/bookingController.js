@@ -156,12 +156,13 @@ exports.cancelBooking = catchAsync(async (req, res, next) => {
   }
 
   booking.status = 'cancelled';
-  await booking.save();
+  
+  await booking.deleteOne();
 
   res.status(200).json({
     status: 'success',
     data: {
-      booking
+      bookings: booking
     }
   });
 });

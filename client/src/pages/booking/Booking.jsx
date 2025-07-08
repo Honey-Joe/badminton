@@ -11,6 +11,7 @@ const Booking = () => {
   const [selectedSlots, setSelectedSlots] = useState([]);
   const [loading, setLoading] = useState(false);
   const [batchLoading, setBatchLoading] = useState(false);
+  const [notes, setNotes] = useState(''); // Added notes state
 
   // Generate 1-hour time slots from 5AM to 12AM
   const generateTimeSlots = () => {
@@ -124,6 +125,7 @@ const Booking = () => {
           date: dateStr,
           startTime: startTime.toISOString(),
           endTime: endTime.toISOString(),
+          notes: notes // Include notes with each booking
         });
       });
 
@@ -140,6 +142,7 @@ const Booking = () => {
         )
       );
       setSelectedSlots([]);
+      setNotes(''); // Clear notes after successful booking
     } catch (error) {
       toast.error(error.response?.data?.message || 'Booking failed');
     } finally {
@@ -228,6 +231,22 @@ const Booking = () => {
                 </div>
               ))}
             </div>
+            
+            {/* Notes Section - Added this new section */}
+            <div className="mb-4">
+              <label htmlFor="booking-notes" className="block text-sm font-medium text-gray-700 mb-1">
+                Additional Notes (Optional)
+              </label>
+              <textarea
+                id="booking-notes"
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
+                placeholder="Any special requests or notes for your booking..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+            </div>
+            
             <div className="flex justify-between items-center border-t pt-2">
               <span className="font-semibold">Total ({totalHours} hour{totalHours > 1 ? 's' : ''})</span>
               <span className="font-bold text-lg">₹{totalPrice}</span>

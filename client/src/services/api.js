@@ -30,6 +30,18 @@ export const createBooking = async (bookingData) => {
   return response.data;
 };
 
+export const getBookings = async () => {
+  const response = await axios.get(`${API_URL}/bookings/my-bookings`, {
+    withCredentials: true
+  });
+  return response.data;
+}
+
+export const cancelBooking = async (bookingId) => {
+  const response = await axios.delete(`${API_URL}/bookings/${bookingId}/cancel`);
+  return response.data;
+};
+
 export const checkAvailability = async (court, startTime, endTime) => {
   const response = await axios.post(`${API_URL}/bookings/check-availability`, {
     court,
@@ -45,3 +57,4 @@ export const checkMultipleAvailabilities = async (slotsData) => {
   );
   return response.data;
 };
+
