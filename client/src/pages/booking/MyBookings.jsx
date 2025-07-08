@@ -42,7 +42,6 @@ const MyBookings = () => {
     } finally {
     }
   };
-
   useEffect(() => {
     fetchBookings();
   }, [dispatch]);
