@@ -10,6 +10,7 @@ import { useEffect } from 'react';
 import { getMe } from './services/api';
 import { setCredentials } from './store/authSlice';
 import MyBookings from './pages/booking/MyBookings';
+import 'react-toastify/dist/ReactToastify.css'
 
 function App() {
 

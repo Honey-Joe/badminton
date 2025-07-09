@@ -31,7 +31,7 @@ const MyBookings = () => {
     try {
       dispatch(setError(null));
       if (window.confirm("Are you sure you want to cancel this booking?")) {
-          const response = await cancelBookingApi(bookingId);
+        const response = await cancelBookingApi(bookingId);
       }
       setStatus("cancelled");
       toast.success("Booking cancelled successfully");
@@ -50,6 +50,8 @@ const MyBookings = () => {
     switch (status.toLowerCase()) {
       case "confirmed":
         return <CheckCircle className="w-5 h-5 text-green-500" />;
+      case "completed":
+        return <CheckCircle className="w-5 h-5 text-blue-500" />;
       case "cancelled":
         return <XCircle className="w-5 h-5 text-red-500" />;
       default:
@@ -100,81 +102,170 @@ const MyBookings = () => {
         </div>
 
         <div className="space-y-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {bookings.bookings.map((booking) => (
-            <div
-              key={booking._id}
-              className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-200"
-            >
-              <div className="p-5 sm:p-6">
-                <div className="flex items-center justify-between flex-wrap gap-4">
-                  <div>
-                    <div className="flex items-center mb-2">
-                      <h3 className="text-lg font-medium text-gray-900 mr-3">
-                        {booking.court}
-                      </h3>
-                      <span className="inline-flex items-center">
-                        {getStatusIcon(booking.status)}
-                        <span className="ml-1 text-sm font-medium">
-                          {booking.status}
-                        </span>
-                      </span>
+          {}
+          {bookings.bookings.map((booking) =>
+            booking.status.toLowerCase() === "confirmed" ? (
+              <>
+                <div
+                  key={booking._id}
+                  className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-200"
+                >
+                  <div className="p-5 sm:p-6">
+                    <div className="flex items-center justify-between flex-wrap gap-4">
+                      <div>
+                        <div className="flex items-center mb-2">
+                          <h3 className="text-lg font-medium text-gray-900 mr-3">
+                            {booking.court}
+                          </h3>
+                          <span className="inline-flex items-center">
+                            {getStatusIcon(booking.status)}
+                            <span className="ml-1 text-sm font-medium">
+                              {booking.status}
+                            </span>
+                          </span>
+                        </div>
+
+                        <div className="flex items-center text-gray-500 text-sm mt-1">
+                          <Calendar className="w-4 h-4 mr-1.5" />
+                          <span>
+                            {new Date(booking.date).toLocaleDateString(
+                              "en-US",
+                              {
+                                weekday: "short",
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              }
+                            )}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-50 rounded-md p-3 text-center">
+                        <div className="flex items-center text-sm text-gray-500">
+                          <Clock className="w-4 h-4 mr-1.5" />
+                          <span>
+                            {new Date(booking.startTime).toLocaleTimeString(
+                              [],
+                              {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              }
+                            )}
+                          </span>
+                          <span className="mx-1">-</span>
+                          <span>
+                            {new Date(booking.endTime).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end w-full">
+                        {booking.status.toLowerCase() !== "cancelled" && (
+                          <button
+                            className="bg-red-600 text-white px-4 py-2 rounded-xl hover:bg-red-700 transition-colors"
+                            onClick={() => handleCancelBooking(booking._id)}
+                          >
+                            Cancel
+                          </button>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="flex items-center text-gray-500 text-sm mt-1">
-                      <Calendar className="w-4 h-4 mr-1.5" />
-                      <span>
-                        {new Date(booking.date).toLocaleDateString("en-US", {
-                          weekday: "short",
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="bg-gray-50 rounded-md p-3 text-center">
-                    <div className="flex items-center text-sm text-gray-500">
-                      <Clock className="w-4 h-4 mr-1.5" />
-                      <span>
-                        {new Date(booking.startTime).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                      <span className="mx-1">-</span>
-                      <span>
-                        {new Date(booking.endTime).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end w-full">
-                    {booking.status.toLowerCase() !== "cancelled" && (
-                      <button
-                        className="bg-red-600 text-white px-4 py-2 rounded-xl hover:bg-red-700 transition-colors"
-                        onClick={() => handleCancelBooking(booking._id)}
-                      >
-                        Cancel
-                      </button>
+                    {booking.notes && (
+                      <div className="mt-4 pt-4 border-t border-gray-100">
+                        <p className="text-sm text-gray-600">
+                          <span className="font-medium">Notes:</span>{" "}
+                          {booking.notes}
+                        </p>
+                      </div>
                     )}
                   </div>
                 </div>
+              </>
+            ) : (
+              // Only render bookings that are not cancelled
+              <div
+                key={booking._id}
+                className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-200"
+              >
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 flex items-center">Cancelled Booking</h2>
+                </div>
+                <div className="p-5 sm:p-6">
+                  <div className="flex items-center justify-between flex-wrap gap-4">
+                    <div>
+                      <div className="flex items-center mb-2">
+                        <h3 className="text-lg font-medium text-gray-900 mr-3">
+                          {booking.court}
+                        </h3>
+                        <span className="inline-flex items-center">
+                          {getStatusIcon(booking.status)}
+                          <span className="ml-1 text-sm font-medium">
+                            {booking.status}
+                          </span>
+                        </span>
+                      </div>
 
-                {booking.notes && (
-                  <div className="mt-4 pt-4 border-t border-gray-100">
-                    <p className="text-sm text-gray-600">
-                      <span className="font-medium">Notes:</span>{" "}
-                      {booking.notes}
-                    </p>
+                      <div className="flex items-center text-gray-500 text-sm mt-1">
+                        <Calendar className="w-4 h-4 mr-1.5" />
+                        <span>
+                          {new Date(booking.date).toLocaleDateString("en-US", {
+                            weekday: "short",
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="bg-gray-50 rounded-md p-3 text-center">
+                      <div className="flex items-center text-sm text-gray-500">
+                        <Clock className="w-4 h-4 mr-1.5" />
+                        <span>
+                          {new Date(booking.startTime).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                        <span className="mx-1">-</span>
+                        <span>
+                          {new Date(booking.endTime).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end w-full">
+                      {booking.status.toLowerCase() !== "cancelled" && (
+                        <button
+                          className="bg-red-600 text-white px-4 py-2 rounded-xl hover:bg-red-700 transition-colors"
+                          onClick={() => handleCancelBooking(booking._id)}
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </div>
                   </div>
-                )}
+
+                  {booking.notes && (
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                      <p className="text-sm text-gray-600">
+                        <span className="font-medium">Notes:</span>{" "}
+                        {booking.notes}
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          )}
         </div>
       </div>
     </Layout>

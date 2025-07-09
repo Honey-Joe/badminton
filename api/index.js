@@ -6,6 +6,7 @@ const userRoutes = require("./routes/userRoutes");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const bookingRoutes = require("./routes/bookingRoutes");
+const { initCompletedBookingsJob } = require("./services/cronJobs");
 dotenv.config();
 const app = express();
 
@@ -37,6 +38,8 @@ const corsOptions = {
   maxAge: 86400, // Cache preflight response for 24 hours
   preflightContinue: false,
 };
+
+initCompletedBookingsJob();
 
 app.use(cors(corsOptions));
 
