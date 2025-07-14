@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink , useNavigate } from 'react-router-dom';
 import { 
   HomeIcon, 
   UsersIcon, 
@@ -7,8 +7,23 @@ import {
   ChartBarIcon,
   LogoutIcon 
 } from '@heroicons/react/outline';
-
+import { logoutUser } from '../services/api';
+import { useDispatch } from 'react-redux';
+import { logout } from '../store/authSlice';
 const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
+
+  const navigate = useNavigate()
+  const dispatch = useDispatch();
+  const handleLogout = async () => {
+      try {
+        await logoutUser();
+        dispatch(logout());
+        navigate("/")
+        setIsMenuOpen(false); // Close menu after logout
+      } catch (error) {
+        console.error('Logout error:', error);
+      }
+    };
   return (
     <>
       {/* Mobile overlay */}
@@ -74,7 +89,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
           </div>
           
           <div className="mt-12 pt-6 border-t border-indigo-600">
-            <button className="flex items-center w-full px-4 py-3 rounded-lg hover:bg-indigo-600 transition-colors">
+            <button className="flex items-center w-full px-4 py-3 rounded-lg hover:bg-indigo-600 transition-colors" onClick={handleLogout}>
               <LogoutIcon className="w-5 h-5 mr-3" />
               Logout
             </button>

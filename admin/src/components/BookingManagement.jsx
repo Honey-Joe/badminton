@@ -1,13 +1,23 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CheckCircleIcon, XCircleIcon, ClockIcon, CalendarIcon } from '@heroicons/react/outline';
+import { fetchBooking } from '../services/api';
 
 const BookingManagement = () => {
-  const [bookings, setBookings] = useState([
-    { id: 1, court: 'Court 1', user: 'John Doe', date: '2023-06-15', time: '10:00 - 11:00', status: 'confirmed' },
-    { id: 2, court: 'Court 2', user: 'Jane Smith', date: '2023-06-15', time: '14:00 - 15:00', status: 'completed' },
-    { id: 3, court: 'Court 3', user: 'Bob Johnson', date: '2023-06-16', time: '16:00 - 17:00', status: 'cancelled' },
-  ]);
+  const [bookings, setBookings] = useState([]);
+  console.log(bookings)
 
+  const fetchBookingData = async () =>{
+    try {
+      const data = await fetchBooking()
+      setBookings(data.data.bookings)
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  useEffect(()=>{
+    fetchBookingData()
+  })
   const getStatusIcon = (status) => {
     switch (status) {
       case 'confirmed':
@@ -43,7 +53,7 @@ const BookingManagement = () => {
             {bookings.map((booking) => (
               <tr key={booking.id}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{booking.court}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{booking.user}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{booking.user.username}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   <div className="flex items-center">
                     <CalendarIcon className="h-4 w-4 mr-1 text-gray-400" />

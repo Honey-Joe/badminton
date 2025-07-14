@@ -5,6 +5,7 @@ const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
+const adminRoutes = require("./routes/adminRoutes");
 const bookingRoutes = require("./routes/bookingRoutes");
 const { initCompletedBookingsJob } = require("./services/cronJobs");
 dotenv.config();
@@ -19,6 +20,7 @@ const corsOptions = {
       process.env.CLIENT_URL,
       "http://localhost:3000",
       "https://your-production-domain.com",
+      "http://localhost:5174"
     ];
 
     if (allowedOrigins.includes(origin)) {
@@ -53,6 +55,7 @@ app.get("/", async (req, res) => {
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/bookings", bookingRoutes);
+app.use("/api/v1/admin",adminRoutes)
 
 const PORT = process.env.PORT || 5000;
 

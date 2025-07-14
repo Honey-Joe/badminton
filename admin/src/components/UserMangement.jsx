@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { PencilIcon, TrashIcon, EyeIcon } from '@heroicons/react/outline';
+import { fetchUser } from '../services/api';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([
@@ -7,6 +8,20 @@ const UserManagement = () => {
     { id: 2, name: 'Jane Smith', email: 'jane@example.com', role: 'admin', status: 'active' },
     { id: 3, name: 'Bob Johnson', email: 'bob@example.com', role: 'user', status: 'inactive' },
   ]);
+
+  const fetchUserData = async ()=>{
+    try{
+      const data = await fetchUser()
+      console.log(data);
+      setUsers(data.data.users)
+    }catch(err){
+      console.log(err)
+    }
+  }
+
+  useEffect(()=>{
+    fetchUserData();
+  })
 
   const deleteUser = (id) => {
     setUsers(users.filter(user => user.id !== id));
