@@ -13,7 +13,6 @@ const Navbar = () => {
   const handleLogout = async () => {
     try {
       await logoutUser();
-      dispatch(logout());
       navigate("/")
       setIsMenuOpen(false); // Close menu after logout
     } catch (error) {

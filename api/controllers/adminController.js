@@ -71,7 +71,7 @@ exports.getMe = asyncHandler(async (req, res, next) => {
 // @route   GET /api/v1/auth/admin/logout
 // @access  Private
 exports.logout = asyncHandler(async (req, res, next) => {
-  res.cookie('token', 'none', {
+  res.cookie('jwt_admin', 'none', {
     expires: new Date(Date.now() + 10 * 1000),
     httpOnly: true
   });

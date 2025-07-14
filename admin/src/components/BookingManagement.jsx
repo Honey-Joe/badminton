@@ -17,7 +17,7 @@ const BookingManagement = () => {
 
   useEffect(()=>{
     fetchBookingData()
-  })
+  },[])
   const getStatusIcon = (status) => {
     switch (status) {
       case 'confirmed':

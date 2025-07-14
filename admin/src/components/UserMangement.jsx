@@ -21,7 +21,7 @@ const UserManagement = () => {
 
   useEffect(()=>{
     fetchUserData();
-  })
+  },[])
 
   const deleteUser = (id) => {
     setUsers(users.filter(user => user.id !== id));
