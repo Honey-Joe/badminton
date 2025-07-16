@@ -71,13 +71,25 @@ const Booking = () => {
       setBatchLoading(true);
       const dateStr = formatApiDate(selectedDate);
 
-      const slotsToCheck = timeSlots.map((slot) => ({
-        court: selectedCourt,
-        startTime: `${dateStr}T${slot.time}`,
-        endTime: `${dateStr}T${(parseInt(slot.time.split(":")[0]) + 1)
-          .toString()
-          .padStart(2, "0")}:00`, // 1-hour slots
-      }));
+      const slotsToCheck = timeSlots.map((slot) => {
+        const [hours, minutes] = slot.time.split(":").map(Number);
+
+        const localDate = new Date(selectedDate);
+        localDate.setHours(hours, minutes, 0, 0);
+
+        const localTimeIST = new Date(
+          localDate.toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
+        );
+
+        const utcTime = new Date(localTimeIST.toISOString());
+        const endUtcTime = new Date(utcTime.getTime() + 60 * 60 * 1000);
+
+        return {
+          court: selectedCourt,
+          startTime: utcTime.toISOString(),
+          endTime: endUtcTime.toISOString(),
+        };
+      });
 
       try {
         const response = await checkMultipleAvailabilities({
@@ -137,58 +149,56 @@ const Booking = () => {
     });
   };
 
-const handleBooking = async () => {
-  if (selectedSlots.length === 0 || !user) return;
+  const handleBooking = async () => {
+    if (selectedSlots.length === 0 || !user) return;
 
-  setLoading(true);
-  try {
-    const dateStr = formatApiDate(selectedDate); // Just the YYYY-MM-DD
+    setLoading(true);
+    try {
+      const dateStr = formatApiDate(selectedDate); // Just the YYYY-MM-DD
 
-    const bookingPromises = selectedSlots.map((slot) => {
-      const [hours, minutes] = slot.time.split(":").map(Number);
+      const bookingPromises = selectedSlots.map((slot) => {
+        const [hours, minutes] = slot.time.split(":").map(Number);
 
-      // Step 1: Create the local (IST) time
-      const localDate = new Date(selectedDate);
-      localDate.setHours(hours, minutes, 0, 0); // Set time in IST
-      const localTimeIST = new Date(
-        localDate.toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
-      );
+        // Step 1: Create the local (IST) time
+        const localDate = new Date(selectedDate);
+        localDate.setHours(hours, minutes, 0, 0); // Set time in IST
+        const localTimeIST = new Date(
+          localDate.toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
+        );
 
-      // Step 2: Convert IST to UTC
-      const utcTime = new Date(localTimeIST.toISOString());
-      const endUtcTime = new Date(utcTime.getTime() + 60 * 60 * 1000); // Add 1 hour
+        // Step 2: Convert IST to UTC
+        const utcTime = new Date(localTimeIST.toISOString());
+        const endUtcTime = new Date(utcTime.getTime() + 60 * 60 * 1000); // Add 1 hour
 
-      return createBooking({
-        court: selectedCourt,
-        date: dateStr,
-        startTime: utcTime.toISOString(),
-        endTime: endUtcTime.toISOString(),
-        notes: notes,
+        return createBooking({
+          court: selectedCourt,
+          date: dateStr,
+          startTime: utcTime.toISOString(),
+          endTime: endUtcTime.toISOString(),
+          notes: notes,
+        });
       });
-    });
 
-    await Promise.all(bookingPromises);
+      await Promise.all(bookingPromises);
 
-    toast.success(`Successfully booked ${selectedSlots.length} slots!`);
+      toast.success(`Successfully booked ${selectedSlots.length} slots!`);
 
-    // Refresh UI
-    setTimeSlots((prev) =>
-      prev.map((slot) =>
-        selectedSlots.some((s) => s.time === slot.time)
-          ? { ...slot, isAvailable: false, isSelected: false }
-          : slot
-      )
-    );
-    setSelectedSlots([]);
-    setNotes("");
-    await checkAllSlots(); // Re-fetch availability
-  } catch (error) {
-    toast.error(error.response?.data?.message || "Booking failed");
-  } finally {
-    setLoading(false);
-  }
-};
-
+      // Refresh UI
+      setTimeSlots((prev) =>
+        prev.map((slot) =>
+          selectedSlots.some((s) => s.time === slot.time)
+            ? { ...slot, isAvailable: false, isSelected: false }
+            : slot
+        )
+      );
+      setSelectedSlots([]);
+      setNotes("");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Booking failed");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Calculate total booking duration and price
   const totalHours = selectedSlots.length;
