@@ -21,6 +21,7 @@ import {
   PointElement,
   LineElement
 } from 'chart.js';
+import { API_URL } from '../services/api';
 
 // Register ChartJS components
 ChartJS.register(
@@ -44,8 +45,8 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { data } = await axios.get('http://localhost:3000/api/v1/stats/overview');
-        const detailedStats = await axios.get('http://localhost:3000/api/v1/stats/bookings');
+        const { data } = await axios.get(API_URL+'stats/overview');
+        const detailedStats = await axios.get(API_URL+'stats/bookings');
         console.log(data, detailedStats);
         
         setStats(data.data);
