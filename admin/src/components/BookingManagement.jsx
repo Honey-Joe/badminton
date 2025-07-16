@@ -77,7 +77,7 @@ const BookingManagement = () => {
                   {booking.court}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {booking.user.username}
+                  {booking?.user?.username}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   <div className="flex items-center">
