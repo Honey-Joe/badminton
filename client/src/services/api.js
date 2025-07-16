@@ -1,8 +1,8 @@
 import axios from 'axios';
 
-// export const API_URL = 'http://localhost:3000/api/v1';
+export const API_URL = 'http://localhost:3000/api/v1';
 
-export const API_URL = 'https://badminton-project-api.vercel.app/api/v1';
+// export const API_URL = 'https://badminton-project-api.vercel.app/api/v1';
 
 axios.defaults.withCredentials = true;
 
@@ -55,7 +55,6 @@ export const checkAvailability = async (court, startTime, endTime) => {
 export const checkMultipleAvailabilities = async (slotsData) => {
   const response = await axios.post(`${API_URL}/bookings/check-multiple-availabilities`, 
     slotsData,
-    { withCredentials: true }
   );
   return response.data;
 };
