@@ -19,14 +19,13 @@ const corsOptions = {
     const allowedOrigins = [
       process.env.CLIENT_URL,
       "http://localhost:3000",
-      "https://your-production-domain.com",
       "http://localhost:5174",
       "https://badminton-project-client.vercel.app",
-      "https://badminton-project-admin.vercel.app",
       "https://badminton-project-api.vercel.app",
+      "https://badminton-project-admin.vercel.app",
     ];
 
-    if (allowedOrigins.includes(origin)) {
+    if (allowedOrigins.includes(origin) || allowedOrigins.some(allowed => origin.startsWith(allowed))) {
       callback(null, true);
     } else {
       callback(new Error("Not allowed by CORS"));
@@ -40,14 +39,15 @@ const corsOptions = {
     "X-Requested-With",
     "Accept",
   ],
-  maxAge: 86400, // Cache preflight response for 24 hours
+  optionsSuccessStatus: 200, // Some legacy browsers choke on 204
+  maxAge: 86400,
   preflightContinue: false,
 };
 
-initCompletedBookingsJob();
 
 app.use(cors(corsOptions));
 
+initCompletedBookingsJob();
 app.use(cookieParser());
 app.use(express.json());
 connectDB();

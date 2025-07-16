@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-export const API_URL = 'http://localhost:3000/api/v1/';
-// export const API_URL = 'https://badminton-project-api.vercel.app//api/v1/';
+// export const API_URL = 'http://localhost:3000/api/v1/';
+export const API_URL = 'https://badminton-project-api.vercel.app//api/v1/';
 
 
 axios.defaults.withCredentials = true;
