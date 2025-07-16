@@ -262,7 +262,8 @@ exports.checkMultipleAvailabilities = catchAsync(async (req, res, next) => {
           const isAvailable = await Booking.checkAvailability(
             slot.court,
             bufferedStart,
-            bufferedEnd
+            bufferedEnd,
+            0
           );
 
           return {

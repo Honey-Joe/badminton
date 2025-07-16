@@ -131,7 +131,7 @@ bookingSchema.pre(/^find/, function(next) {
 });
 
 // Enhanced static method with caching and buffer time
-bookingSchema.statics.checkAvailability = async function(court, startTime, endTime, bufferMinutes = 5) {
+bookingSchema.statics.checkAvailability = async function(court, startTime, endTime, bufferMinutes = 0) {
   try {
     const adjustedStart = new Date(new Date(startTime).getTime() - bufferMinutes * 60000);
     const adjustedEnd = new Date(new Date(endTime).getTime() + bufferMinutes * 60000);
@@ -144,9 +144,9 @@ bookingSchema.statics.checkAvailability = async function(court, startTime, endTi
         { startTime: { $eq: new Date(startTime) } }
       ]
     })
-    .maxTimeMS(3000)
-    .select('_id startTime endTime')
-    .lean();
+      .maxTimeMS(3000)
+      .select('_id startTime endTime')
+      .lean();
 
     return !conflict;
   } catch (err) {
