@@ -2,41 +2,15 @@
   "version": 2,
   "name": "badminton-api",
   "builds": [
-    {
-      "src": "index.js",
-      "use": "@vercel/node",
-      "config": {
-        "maxDuration": 30
+      {
+          "src": "index.js",
+          "use": "@vercel/node"
       }
-    }
   ],
   "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/index.js",
-      "headers": {
-        "Access-Control-Allow-Origin": [
-          "http://localhost:3000",
-          "http://localhost:5174",
-          "http://localhost:5173",
-          "https://badminton-project-client.vercel.app",
-          "https://badminton-project-api.vercel.app",
-          "https://badminton-project-admin.vercel.app"
-        ],
-        "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept",
-        "Access-Control-Allow-Credentials": "true"
+      {
+          "src": "/(.*)",
+          "dest": "/index.js"
       }
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.js"
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "/index.js"
-    }
   ]
 }
