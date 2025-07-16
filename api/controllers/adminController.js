@@ -73,7 +73,6 @@ exports.getMe = asyncHandler(async (req, res, next) => {
 exports.logout = asyncHandler(async (req, res, next) => {
   res.cookie('jwt_admin', 'none', {
     expires: new Date(Date.now() + 10 * 1000),
-    httpOnly: false
   });
 
   res.status(200).json({
@@ -95,7 +94,6 @@ const createSendToken = (user, statusCode, res) => {
     expires: new Date(
       Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
     ),
-    httpOnly: false,
   };
   
   res.cookie('jwt_admin', token, cookieOptions);
