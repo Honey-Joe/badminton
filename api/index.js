@@ -24,7 +24,6 @@ const corsOptions = {
       "https://badminton-project-client.vercel.app",
       "https://badminton-project-admin.vercel.app",
       "https://badminton-project-api.vercel.app",
-      "https://badminton-project.vercel.app",
     ];
 
     if (allowedOrigins.includes(origin)) {
