@@ -11,26 +11,29 @@ const { initCompletedBookingsJob } = require("./services/cronJobs");
 dotenv.config();
 const app = express();
 
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  "http://localhost:3000",
+  "http://localhost:5174", 
+  "http://localhost:5173",
+  "https://badminton-project-client.vercel.app",
+  "https://badminton-project-admin.vercel.app",
+  "https://badminton-project-api.vercel.app"
+];
+
 const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
-
-    const allowedOrigins = [
-      process.env.CLIENT_URL,
-      "http://localhost:3000",
-      "http://localhost:5174",
-      "http://localhost:5173",
-      "https://badminton-project-client.vercel.app",
-      "https://badminton-project-api.vercel.app",
-      "https://badminton-project-admin.vercel.app",
-    ];
-
     
-
-    if (allowedOrigins.includes(origin) || allowedOrigins.some(allowed => origin.startsWith(allowed))) {
+    // Check if origin is in allowed origins or is a subdomain of allowed origins
+    if (
+      allowedOrigins.includes(origin) || 
+      allowedOrigins.some(domain => origin.endsWith(domain.replace('https://', '').replace('http://', '')))
+    ) {
       callback(null, true);
     } else {
+      console.error(`CORS blocked for origin: ${origin}`);
       callback(new Error("Not allowed by CORS"));
     }
   },
@@ -38,13 +41,13 @@ const corsOptions = {
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: [
     "Content-Type",
-    "Authorization",
+    "Authorization", 
     "X-Requested-With",
-    "Accept",
+    "Accept"
   ],
-  optionsSuccessStatus: 200, // Some legacy browsers choke on 204
+  optionsSuccessStatus: 200,
   maxAge: 86400,
-  preflightContinue: false,
+  preflightContinue: false
 };
 
 
