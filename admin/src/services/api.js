@@ -35,3 +35,9 @@ export const fetchBooking = async ()=>{
 
   return response.data
 }
+
+export const statsCombined = async ()=>{
+  const response = await axios.get(`${API_URL}stats/overview`)
+
+  return response.data
+}

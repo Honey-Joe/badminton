@@ -38,7 +38,7 @@ function App() {
       <ToastContainer />
       <Router>
         <Routes>
-          <Route path="/" element={<Home></Home>}></Route>
+          <Route path="/" element={<Login></Login>}></Route>
         <Route path="/login" element={<Login></Login>} />
         <Route path="/register" element={<h1>Register Page</h1>} />
         <Route path="admin/*" element={<AdminPage />} />
