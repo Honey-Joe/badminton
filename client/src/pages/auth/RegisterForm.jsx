@@ -2,10 +2,11 @@ import { useState } from "react";
 import { useDispatch } from "react-redux";
 import { setCredentials, setStatus, setError } from "../../store/authSlice";
 import { registerUser } from "../../services/api";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Layout from "../../layouts/Layout";
 
 const RegisterForm = () => {
+  const navigate = useNavigate();
   const dispatch = useDispatch();
   const [formData, setFormData] = useState({
     username: "",
@@ -34,6 +35,7 @@ const RegisterForm = () => {
         })
       );
       dispatch(setStatus("succeeded"));
+      navigate("/login")
     } catch (error) {
       dispatch(
         setError(error.response?.data?.message || "Registration failed")
