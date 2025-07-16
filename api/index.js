@@ -20,7 +20,11 @@ const corsOptions = {
       process.env.CLIENT_URL,
       "http://localhost:3000",
       "https://your-production-domain.com",
-      "http://localhost:5174"
+      "http://localhost:5174",
+      "https://badminton-project-client.vercel.app",
+      "https://badminton-project-admin.vercel.app",
+      "https://badminton-project-api.vercel.app",
+      "https://badminton-project.vercel.app",
     ];
 
     if (allowedOrigins.includes(origin)) {
