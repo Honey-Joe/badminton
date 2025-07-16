@@ -11,12 +11,13 @@ const Booking = () => {
   const [selectedSlots, setSelectedSlots] = useState([]);
   const [loading, setLoading] = useState(false);
   const [batchLoading, setBatchLoading] = useState(false);
-  const [notes, setNotes] = useState("");
+  const [notes, setNotes] = useState(""); // Added notes state
 
+  // Generate 1-hour time slots from 5AM to 12AM
   const generateTimeSlots = () => {
     const slots = [];
-    const startHour = 5;
-    const endHour = 24;
+    const startHour = 5; // 5AM opening
+    const endHour = 24; // 12AM midnight closing
 
     for (let hour = startHour; hour < endHour; hour++) {
       const timeString = `${hour.toString().padStart(2, "0")}:00`;
@@ -33,6 +34,7 @@ const Booking = () => {
 
   const [timeSlots, setTimeSlots] = useState(generateTimeSlots());
 
+  // Format date as "Mon, 07 Jul 2025"
   const formatDate = (date) => {
     return date.toLocaleDateString("en-US", {
       weekday: "short",
@@ -42,6 +44,7 @@ const Booking = () => {
     });
   };
 
+  // Format date for API as "YYYY-MM-DD"
   const formatApiDate = (date) => {
     return date.toISOString().split("T")[0];
   };
@@ -49,47 +52,46 @@ const Booking = () => {
   const isSlotInPast = (slotTime) => {
     const today = new Date();
     const isToday = selectedDate.toDateString() === today.toDateString();
+
     if (!isToday) return false;
 
     const [hours] = slotTime.split(":").map(Number);
     const currentHour = today.getHours();
     const currentMinutes = today.getMinutes();
+
+    // If current time is past this slot's start time
     return hours < currentHour || (hours === currentHour && 0 < currentMinutes);
   };
 
-  // ⬇️ Availability Check with UTC ISO strings
+  // Check availability for all slots in parallel
   useEffect(() => {
     const checkAllSlots = async () => {
       setBatchLoading(true);
       const dateStr = formatApiDate(selectedDate);
 
-      const slotsToCheck = timeSlots.map((slot) => {
-        const startTime = new Date(`${dateStr}T${slot.time}`);
-        const endTime = new Date(startTime.getTime() + 60 * 60 * 1000);
-        return {
-          court: selectedCourt,
-          startTime: startTime.toISOString(),
-          endTime: endTime.toISOString(),
-        };
-      });
-
-      console.log("🧪 Checking availability for:", slotsToCheck);
+      const slotsToCheck = timeSlots.map((slot) => ({
+        court: selectedCourt,
+        startTime: `${dateStr}T${slot.time}`,
+        endTime: `${dateStr}T${(parseInt(slot.time.split(":")[0]) + 1)
+          .toString()
+          .padStart(2, "0")}:00`, // 1-hour slots
+      }));
 
       try {
-        const response = await checkMultipleAvailabilities({ slots: slotsToCheck });
-        const results = response?.data?.results || [];
+        const response = await checkMultipleAvailabilities({
+          slots: slotsToCheck,
+        });
 
         setTimeSlots((prevSlots) =>
           prevSlots.map((slot, index) => ({
             ...slot,
-            isAvailable: results[index]?.available ?? false,
-            isSelected: false,
+            isAvailable: response.data.results[index].available,
+            isSelected: false, // Reset selection when changing date/court
           }))
         );
         setSelectedSlots([]);
       } catch (error) {
-        console.error("❌ Availability check failed:", error);
-        toast.error("Availability check failed");
+        toast.error("Failed to check availability");
       } finally {
         setBatchLoading(false);
       }
@@ -100,54 +102,65 @@ const Booking = () => {
 
   const isPastDate = (date) => {
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0); // Reset time to compare dates only
     return date < today;
   };
 
   const handleDateChange = (days) => {
     const newDate = new Date(selectedDate);
     newDate.setDate(newDate.getDate() + days);
-    if (isPastDate(newDate)) return;
+
+    // Prevent navigating to past dates
+    if (isPastDate(newDate)) {
+      return;
+    }
+
     setSelectedDate(newDate);
   };
-
   const handleSlotClick = (slot) => {
     if (!slot.isAvailable) return;
 
     setTimeSlots((prev) =>
-      prev.map((s) => s.time === slot.time ? { ...s, isSelected: !s.isSelected } : s)
+      prev.map((s) =>
+        s.time === slot.time ? { ...s, isSelected: !s.isSelected } : s
+      )
     );
 
-    setSelectedSlots((prev) =>
-      prev.some((s) => s.time === slot.time)
-        ? prev.filter((s) => s.time !== slot.time)
-        : [...prev, slot]
-    );
+    setSelectedSlots((prev) => {
+      if (prev.some((s) => s.time === slot.time)) {
+        return prev.filter((s) => s.time !== slot.time);
+      } else {
+        return [...prev, slot];
+      }
+    });
   };
 
   const handleBooking = async () => {
     if (selectedSlots.length === 0 || !user) return;
-    setLoading(true);
 
+    setLoading(true);
     try {
       const dateStr = formatApiDate(selectedDate);
 
+      // Create all bookings in parallel
       const bookingPromises = selectedSlots.map((slot) => {
         const startTime = new Date(`${dateStr}T${slot.time}`);
-        const endTime = new Date(startTime.getTime() + 60 * 60 * 1000);
+        const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 1 hour
 
         return createBooking({
           court: selectedCourt,
           date: dateStr,
           startTime: startTime.toISOString(),
           endTime: endTime.toISOString(),
-          notes,
+          notes: notes, // Include notes with each booking
         });
       });
 
       await Promise.all(bookingPromises);
-      toast.success(`Booked ${selectedSlots.length} slot(s) successfully`);
 
+      toast.success(`Successfully booked ${selectedSlots.length} slots!`);
+
+      // Update availability for booked slots
       setTimeSlots((prev) =>
         prev.map((slot) =>
           selectedSlots.some((s) => s.time === slot.time)
@@ -156,7 +169,7 @@ const Booking = () => {
         )
       );
       setSelectedSlots([]);
-      setNotes("");
+      setNotes(""); // Clear notes after successful booking
     } catch (error) {
       toast.error(error.response?.data?.message || "Booking failed");
     } finally {
@@ -164,17 +177,20 @@ const Booking = () => {
     }
   };
 
+  // Calculate total booking duration and price
   const totalHours = selectedSlots.length;
-  const pricePerHour = 300;
+  const pricePerHour = 300; // Example pricing
   const totalPrice = totalHours * pricePerHour;
 
   return (
     <Layout>
       <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-md overflow-hidden">
         {/* Header */}
-        <div className="bg-gray-800 text-white p-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold">Badminton Court Booking</h1>
-          <div className="text-sm">{formatDate(selectedDate)} ▼</div>
+        <div className="bg-gray-800 text-white p-4">
+          <div className="flex justify-between items-center">
+            <h1 className="text-xl font-bold">Badminton Court Booking</h1>
+            <div className="text-sm">{formatDate(selectedDate)} ▼</div>
+          </div>
         </div>
 
         {/* Court Selection */}
@@ -199,16 +215,22 @@ const Booking = () => {
 
         {/* Time Slots */}
         <div className="p-4">
-          <h2 className="text-lg font-semibold mb-2">Available Time Slots (1-hour)</h2>
+          <h2 className="text-lg font-semibold mb-2">
+            Available Time Slots (1-hour)
+          </h2>
           {batchLoading ? (
             <div className="text-center py-8">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-red-600"></div>
-              <p className="mt-2 text-gray-600">Checking availability...</p>
+              <p className="mt-2 text-gray-600">Loading availability...</p>
             </div>
           ) : (
             <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
               {timeSlots
-                .filter((slot) => !isSlotInPast(slot.time))
+                .filter((slot) => {
+                  // Hide completely if it's in the past
+                  const isPast = isSlotInPast(slot.time);
+                  return !isPast;
+                })
                 .map((slot) => (
                   <button
                     key={slot.time}
@@ -236,22 +258,29 @@ const Booking = () => {
             <h2 className="text-lg font-semibold mb-2">Your Selection</h2>
             <div className="space-y-2 mb-4">
               {selectedSlots.map((slot) => (
-                <div key={slot.time} className="flex justify-between items-center">
+                <div
+                  key={slot.time}
+                  className="flex justify-between items-center"
+                >
                   <span>{slot.displayTime}</span>
                   <span className="font-medium">₹{pricePerHour}</span>
                 </div>
               ))}
             </div>
 
+            {/* Notes Section - Added this new section */}
             <div className="mb-4">
-              <label htmlFor="booking-notes" className="block text-sm font-medium mb-1">
-                Notes (optional)
+              <label
+                htmlFor="booking-notes"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Additional Notes (Optional)
               </label>
               <textarea
                 id="booking-notes"
                 rows={3}
-                className="w-full px-3 py-2 border rounded-md shadow-sm focus:ring-red-500 focus:border-red-500"
-                placeholder="Any special requests or notes..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
+                placeholder="Any special requests or notes for your booking..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
               />
@@ -293,7 +322,7 @@ const Booking = () => {
           </button>
         </div>
 
-        {/* Submit */}
+        {/* Proceed Button */}
         <div className="p-4 bg-gray-100 border-t">
           <button
             onClick={handleBooking}
@@ -305,7 +334,9 @@ const Booking = () => {
             }`}
           >
             {loading
-              ? `Booking ${selectedSlots.length} slot(s)...`
+              ? `Booking ${selectedSlots.length} Slot${
+                  selectedSlots.length > 1 ? "s" : ""
+                }...`
               : `Book Now (₹${totalPrice})`}
           </button>
         </div>
