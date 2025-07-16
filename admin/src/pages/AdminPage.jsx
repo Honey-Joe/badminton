@@ -13,6 +13,7 @@ const AdminPage = () => {
         <Route path="/bookings" element={<BookingManagement />} />
       </Routes>
     </AdminLayout>
+    
   );
 };
 

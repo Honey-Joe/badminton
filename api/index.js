@@ -26,6 +26,8 @@ const corsOptions = {
       "https://badminton-project-admin.vercel.app",
     ];
 
+    
+
     if (allowedOrigins.includes(origin) || allowedOrigins.some(allowed => origin.startsWith(allowed))) {
       callback(null, true);
     } else {
