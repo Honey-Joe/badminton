@@ -92,6 +92,7 @@ const Booking = () => {
         setSelectedSlots([]);
       } catch (error) {
         toast.error("Failed to check availability");
+        console.error("Availability check error:", error);
       } finally {
         setBatchLoading(false);
       }
