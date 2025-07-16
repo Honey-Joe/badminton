@@ -95,6 +95,24 @@ bookingSchema.pre('save', function(next) {
   }
   next();
 });
+// Add timezone awareness
+bookingSchema.pre('save', function(next) {
+  // Convert to UTC but preserve the same "clock time"
+  if (this.startTime) this.startTime = new Date(this.startTime.toISOString());
+  if (this.endTime) this.endTime = new Date(this.endTime.toISOString());
+  next();
+});
+
+// Add index for better availability query performance
+bookingSchema.index({ 
+  court: 1, 
+  startTime: 1 
+});
+
+bookingSchema.index({ 
+  court: 1, 
+  endTime: 1 
+});
 
 // Auto-populate user data
 bookingSchema.pre(/^find/, function(next) {
@@ -107,19 +125,30 @@ bookingSchema.pre(/^find/, function(next) {
 
 // Static method to check availability
 bookingSchema.statics.checkAvailability = async function(court, startTime, endTime) {
-  const conflict = await this.findOne({
-    court,
-    $or: [
-      { 
-        startTime: { $lt: endTime }, 
-        endTime: { $gt: startTime } 
-      }
-    ]
-  })
-  .select('_id')
-  .lean();
+  try {
+    // Ensure dates are properly converted to MongoDB's preferred format
+    const adjustedStart = new Date(startTime);
+    const adjustedEnd = new Date(endTime);
+    
+    const conflict = await this.findOne({
+      court,
+      $or: [
+        { 
+          startTime: { $lt: adjustedEnd }, 
+          endTime: { $gt: adjustedStart } 
+        }
+      ]
+    })
+    .maxTimeMS(5000) // Add timeout
+    .select('_id')
+    .lean();
 
-  return !conflict;
+    return !conflict;
+  } catch (err) {
+    console.error('Availability check error:', err);
+    // Fail safely - assume slot is not available
+    return false;
+  }
 };
 
 const Booking = mongoose.model('Booking', bookingSchema);

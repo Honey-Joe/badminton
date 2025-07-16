@@ -234,35 +234,66 @@ exports.checkMultipleAvailabilities = catchAsync(async (req, res, next) => {
     return next(new AppError('Please provide an array of slots', 400));
   }
 
-  // Validate each slot has required fields
-  for (const slot of slots) {
-    if (!slot.court || !slot.startTime || !slot.endTime) {
-      return next(new AppError('Each slot must have court, startTime and endTime', 400));
-    }
+  // Validate slots with better error messages
+  const validations = slots.map((slot, index) => {
+    if (!slot.court) return `Slot ${index} missing court`;
+    if (!slot.startTime) return `Slot ${index} missing startTime`;
+    if (!slot.endTime) return `Slot ${index} missing endTime`;
+    return null;
+  }).filter(Boolean);
+
+  if (validations.length > 0) {
+    return next(new AppError(`Validation errors: ${validations.join(', ')}`, 400));
   }
 
-  // Process all slots in parallel
-  const results = await Promise.all(
-    slots.map(async (slot) => {
-      const isAvailable = await Booking.checkAvailability(
-        slot.court,
-        new Date(slot.startTime),
-        new Date(slot.endTime)
-      );
-      return {
-        court: slot.court,
-        startTime: slot.startTime,
-        endTime: slot.endTime,
-        available: isAvailable
-      };
-    })
-  );
+  try {
+    // Process with timeout protection
+    const results = await Promise.all(
+      slots.map(async (slot) => {
+        try {
+          // Convert to proper Date objects
+          const start = new Date(slot.startTime);
+          const end = new Date(slot.endTime);
+          
+          // Add buffer time (5 minutes) to prevent back-to-back booking issues
+          const bufferedStart = new Date(start.getTime() - 5 * 60 * 1000);
+          const bufferedEnd = new Date(end.getTime() + 5 * 60 * 1000);
 
-  res.status(200).json({
-    status: 'success',
-    data: {
-      count: results.length,
-      results
-    }
-  });
+          const isAvailable = await Booking.checkAvailability(
+            slot.court,
+            bufferedStart,
+            bufferedEnd
+          );
+
+          return {
+            court: slot.court,
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+            available: isAvailable,
+            checkedAt: new Date().toISOString()
+          };
+        } catch (err) {
+          console.error(`Error checking slot ${slot.startTime}-${slot.endTime}:`, err);
+          return {
+            ...slot,
+            available: false,
+            error: 'Check failed'
+          };
+        }
+      })
+    );
+
+    res.status(200).json({
+      status: 'success',
+      requestedAt: new Date().toISOString(),
+      data: {
+        count: results.length,
+        results
+      }
+    });
+
+  } catch (err) {
+    console.error('Batch availability check failed:', err);
+    return next(new AppError('Error processing availability check', 500));
+  }
 });

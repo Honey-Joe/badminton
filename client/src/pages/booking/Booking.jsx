@@ -81,6 +81,8 @@ const Booking = () => {
         const response = await checkMultipleAvailabilities({
           slots: slotsToCheck,
         });
+        console.log("Availability response:", response);
+        console.log("Slots to check:", slotsToCheck);
 
         setTimeSlots((prevSlots) =>
           prevSlots.map((slot, index) => ({
@@ -89,6 +91,7 @@ const Booking = () => {
             isSelected: false, // Reset selection when changing date/court
           }))
         );
+        console.log("Updated time slots:", timeSlots);
         setSelectedSlots([]);
       } catch (error) {
         toast.error("Failed to check availability");
