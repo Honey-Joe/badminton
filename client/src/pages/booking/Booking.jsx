@@ -50,7 +50,9 @@ const Booking = () => {
   };
 
   const isSlotInPast = (slotTime) => {
-    const today = new Date();
+    const today = new Date(
+      new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
+    );
     const isToday = selectedDate.toDateString() === today.toDateString();
 
     if (!isToday) return false;
@@ -135,47 +137,58 @@ const Booking = () => {
     });
   };
 
-  const handleBooking = async () => {
-    if (selectedSlots.length === 0 || !user) return;
+const handleBooking = async () => {
+  if (selectedSlots.length === 0 || !user) return;
 
-    setLoading(true);
-    try {
-      const dateStr = formatApiDate(selectedDate);
+  setLoading(true);
+  try {
+    const dateStr = formatApiDate(selectedDate); // Just the YYYY-MM-DD
 
-      // Create all bookings in parallel
-      const bookingPromises = selectedSlots.map((slot) => {
-        const startTime = new Date(`${dateStr}T${slot.time}`);
-        const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 1 hour
+    const bookingPromises = selectedSlots.map((slot) => {
+      const [hours, minutes] = slot.time.split(":").map(Number);
 
-        return createBooking({
-          court: selectedCourt,
-          date: dateStr,
-          startTime: startTime.toISOString(),
-          endTime: endTime.toISOString(),
-          notes: notes, // Include notes with each booking
-        });
-      });
-
-      await Promise.all(bookingPromises);
-
-      toast.success(`Successfully booked ${selectedSlots.length} slots!`);
-
-      // Update availability for booked slots
-      setTimeSlots((prev) =>
-        prev.map((slot) =>
-          selectedSlots.some((s) => s.time === slot.time)
-            ? { ...slot, isAvailable: false, isSelected: false }
-            : slot
-        )
+      // Step 1: Create the local (IST) time
+      const localDate = new Date(selectedDate);
+      localDate.setHours(hours, minutes, 0, 0); // Set time in IST
+      const localTimeIST = new Date(
+        localDate.toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
       );
-      setSelectedSlots([]);
-      setNotes(""); // Clear notes after successful booking
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Booking failed");
-    } finally {
-      setLoading(false);
-    }
-  };
+
+      // Step 2: Convert IST to UTC
+      const utcTime = new Date(localTimeIST.toISOString());
+      const endUtcTime = new Date(utcTime.getTime() + 60 * 60 * 1000); // Add 1 hour
+
+      return createBooking({
+        court: selectedCourt,
+        date: dateStr,
+        startTime: utcTime.toISOString(),
+        endTime: endUtcTime.toISOString(),
+        notes: notes,
+      });
+    });
+
+    await Promise.all(bookingPromises);
+
+    toast.success(`Successfully booked ${selectedSlots.length} slots!`);
+
+    // Refresh UI
+    setTimeSlots((prev) =>
+      prev.map((slot) =>
+        selectedSlots.some((s) => s.time === slot.time)
+          ? { ...slot, isAvailable: false, isSelected: false }
+          : slot
+      )
+    );
+    setSelectedSlots([]);
+    setNotes("");
+    await checkAllSlots(); // Re-fetch availability
+  } catch (error) {
+    toast.error(error.response?.data?.message || "Booking failed");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // Calculate total booking duration and price
   const totalHours = selectedSlots.length;
