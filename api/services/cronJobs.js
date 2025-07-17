@@ -35,7 +35,7 @@ const updateCompletedBookings = async () => {
 // Schedule the job to run every 30 minutes
 const initCompletedBookingsJob = () => {
   // Runs at minute 0 and 30 past every hour
-  cron.schedule('*/30 * * * *', () => {
+  cron.schedule('* * * * *', () => {
     console.log('Running completed bookings check...');
     updateCompletedBookings();
   });
