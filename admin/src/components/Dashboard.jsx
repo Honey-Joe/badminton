@@ -70,6 +70,7 @@ const Dashboard = () => {
 
     fetchData();
   }, []);
+  console.log(stats,"stats")
 
   if (loading) return <div className="flex justify-center items-center h-64">Loading dashboard...</div>;
   if (error) return <div className="text-center text-red-500 py-8">Error: {error}</div>;

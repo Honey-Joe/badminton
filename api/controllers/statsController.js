@@ -18,7 +18,7 @@ exports.getBookingStats = catchAsync(async (req, res, next) => {
   // Calculate booking statistics
   const stats = await Booking.aggregate([
     {
-      $match: { status: 'confirmed' }
+      $match: { status: 'completed' }
     },
     {
       $group: {
@@ -41,7 +41,7 @@ exports.getBookingStats = catchAsync(async (req, res, next) => {
   // Calculate bookings by court
   const bookingsByCourt = await Booking.aggregate([
     {
-      $match: { status: 'confirmed' }
+      $match: { status: 'completed' }
     },
     {
       $group: {
@@ -60,7 +60,7 @@ exports.getBookingStats = catchAsync(async (req, res, next) => {
   const bookingsByMonth = await Booking.aggregate([
     {
       $match: { 
-        status: 'confirmed',
+        status: 'completed',
         createdAt: { $gte: last6Months[0] }
       }
     },
@@ -162,7 +162,7 @@ exports.getCombinedStats = catchAsync(async (req, res, next) => {
   const [bookingStats, userStats] = await Promise.all([
     Booking.aggregate([
       {
-        $match: { status: 'confirmed' }
+        $match: { status: 'completed' }
       },
       {
         $group: {
