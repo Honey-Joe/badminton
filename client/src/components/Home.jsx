@@ -1,8 +1,12 @@
 import { Link } from 'react-router-dom';
 import Layout from '../layouts/Layout';
 import { Clock, CreditCard, CalendarCheck, BadgeCheck, Users, Shield } from 'lucide-react';
+import { useSelector } from 'react-redux';
+import { use } from 'react';
 
 const Home = () => {
+    const { user, token } = useSelector((state) => state.auth);
+
   return (
     <Layout>
       {/* Hero Section */}
@@ -13,7 +17,7 @@ const Home = () => {
             Reserve your court in seconds and enjoy seamless badminton experiences
           </p>
           <Link 
-            to="/booking" 
+            to={user?"/court":"/login"  } 
             className="bg-white text-red-600 font-bold py-3 px-8 rounded-lg text-lg hover:bg-gray-100 transition duration-300 inline-flex items-center justify-center gap-2"
           >
             <CalendarCheck className="w-5 h-5" />
@@ -83,7 +87,7 @@ const Home = () => {
                   Professional-grade court with tournament-quality flooring and lighting.
                 </p>
                 <Link 
-                  to="/booking" 
+                  to={user?"/court":".login"} 
                   className="text-red-600 font-medium inline-flex items-center gap-1 hover:text-red-700"
                 >
                   Book Now <CalendarCheck className="w-4 h-4" />

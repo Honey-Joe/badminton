@@ -37,6 +37,7 @@ const LoginForm = () => {
     } catch (error) {
       dispatch(setError(error.response?.data?.message || 'Login failed'));
       dispatch(setStatus('failed'));
+      console.error('Login error:', error);
       toast.error(error.response?.data?.message || 'Login failed');
     }
   };
