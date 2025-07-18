@@ -4,10 +4,13 @@ import { setCredentials, setStatus, setError } from "../../store/authSlice";
 import { registerUser } from "../../services/api";
 import { Link, useNavigate } from "react-router-dom";
 import Layout from "../../layouts/Layout";
+import { TableOfContents } from "lucide-react";
+import { toast } from "react-toastify";
 
 const RegisterForm = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const [loading , setLoading] = useState(false);
   const [formData, setFormData] = useState({
     username: "",
     email: "",
@@ -25,6 +28,7 @@ const RegisterForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     dispatch(setStatus("loading"));
+    setLoading(true);
 
     try {
       const response = await registerUser(formData);
@@ -34,13 +38,18 @@ const RegisterForm = () => {
           token: response.token,
         })
       );
-      dispatch(setStatus("succeeded"));
+      setLoading(false);
       navigate("/login")
+      toast.success("Registration successful!");
     } catch (error) {
       dispatch(
         setError(error.response?.data?.message || "Registration failed")
       );
+      toast.error("Registration failed");
+      console.error("Registration error:", error);
       dispatch(setStatus("failed"));
+    }finally {
+      setLoading(false);
     }
   };
 
@@ -121,7 +130,7 @@ const RegisterForm = () => {
                 type="submit"
                 className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
-                Register
+                {loading ? "Registering..." : "Register"}
               </button>
             </div>
           </form>
