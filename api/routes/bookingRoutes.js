@@ -2,8 +2,19 @@ const express = require('express');
 const bookingController = require('../controllers/bookingController');
 const authMiddleware = require('../middleware/authMiddleware');
 const adminMiddleware = require("../middleware/adminMiddleware");
+const { updateCompletedBookings } = require('../services/cronJobs');
 
 const router = express.Router();
+
+router.get('/update-bookings', async (req, res) => {
+  try {
+    await updateCompletedBookings();
+    res.status(200).json({ message: 'Bookings updated' });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 
 // Protect all routes after this middleware
 

@@ -42,5 +42,5 @@ const initCompletedBookingsJob = () => {
 };
 
 module.exports = {
-  initCompletedBookingsJob
+  initCompletedBookingsJob,updateCompletedBookings
 };
