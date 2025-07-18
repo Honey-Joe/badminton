@@ -192,9 +192,7 @@ const MyBookings = () => {
                 key={booking._id}
                 className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-200"
               >
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900 flex items-center">Cancelled Booking</h2>
-                </div>
+               
                 <div className="p-5 sm:p-6">
                   <div className="flex items-center justify-between flex-wrap gap-4">
                     <div>
