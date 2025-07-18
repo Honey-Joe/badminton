@@ -192,7 +192,6 @@ const MyBookings = () => {
                 key={booking._id}
                 className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-200"
               >
-               
                 <div className="p-5 sm:p-6">
                   <div className="flex items-center justify-between flex-wrap gap-4">
                     <div>
